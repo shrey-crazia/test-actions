@@ -1,0 +1,31 @@
+name: Stress Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      duration:
+        description: "Test duration (e.g. 30s, 1m, 5m)"
+        default: "300m"
+      vus:
+        description: "Virtual users (concurrent)"
+        default: "200"
+
+jobs:
+  stress-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+      - name: Run stress test
+        env:
+          TEST_DURATION: ${{ github.event.inputs.duration }}
+          TEST_VUS: ${{ github.event.inputs.vus }}
+        run: k6 run --vus "$TEST_VUS" --duration "$TEST_DURATION" k6-test.js
